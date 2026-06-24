@@ -1,10 +1,11 @@
 <script setup lang="ts">
-import { ref, onMounted, computed } from 'vue';
+import { ref, onMounted, onUnmounted, computed } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import { assignmentsApi } from '@/api/assignments';
 import { submissionsApi } from '@/api/submissions';
 import { coursesApi } from '@/api/courses';
 import { usePyodide } from '@/composables/usePyodide';
+import { useWebSocket } from '@/composables/useWebSocket';
 import { useAuthStore } from '@/stores/auth';
 import CodeEditor from '@/components/CodeEditor.vue';
 import Console from '@/components/Console.vue';
@@ -23,6 +24,30 @@ const submitting = ref(false);
 const lastOutput = ref('');
 
 const { logs, runCode, running, clear, ensureReady, loading, loadingMessage } = usePyodide();
+
+// WebSocket 连接（仅学生推送运行事件）
+const { connect: wsConnect, disconnect: wsDisconnect, sendRunEvent } = useWebSocket();
+
+onMounted(async () => {
+  const id = route.params.assignmentId as string;
+  try {
+    const a = await assignmentsApi.get(id);
+    assignment.value = a;
+    code.value = a.starterCode;
+    const c = await coursesApi.get(a.courseId);
+    courseTitle.value = c.title;
+    // 学生连接 WebSocket 并推送运行事件
+    if (auth.isStudent) {
+      wsConnect('global');
+    }
+  } catch (e: any) {
+    alert(e.message);
+  }
+});
+
+onUnmounted(() => {
+  wsDisconnect();
+});
 
 const status = computed<'idle' | 'loading' | 'running' | 'success' | 'error'>(() => {
   if (loading.value) return 'loading';
@@ -54,8 +79,35 @@ async function onRun() {
   if (!assignment.value) return;
   submitted.value = null;
   clear();
+
+  // 推送运行开始事件
+  if (auth.isStudent && assignment.value) {
+    sendRunEvent('run-start', {
+      studentId: auth.user!.id,
+      studentName: auth.user!.displayName,
+      assignmentId: assignment.value._id,
+      assignmentTitle: assignment.value.title,
+      courseId: (assignment.value as any).courseId,
+    });
+  }
+
   const r = await runCode(code.value);
   lastOutput.value = r.output;
+
+  // 推送运行结束事件
+  if (auth.isStudent && assignment.value) {
+    sendRunEvent(r.ok ? 'run-end' : 'error', {
+      studentId: auth.user!.id,
+      studentName: auth.user!.displayName,
+      assignmentId: assignment.value._id,
+      assignmentTitle: assignment.value.title,
+      courseId: (assignment.value as any).courseId,
+      code: code.value,
+      output: r.output,
+      error: r.ok ? undefined : r.output,
+    });
+  }
+
   if (r.ok && assignment.value.expectedOutput) {
     const expected = (assignment.value.expectedOutput ?? '').trim();
     const actual = (r.output ?? '').trim();

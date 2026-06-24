@@ -26,6 +26,11 @@ const router = createRouter({
       component: () => import('@/views/teacher/Submissions.vue'),
       meta: { auth: true, role: 'teacher' },
     },
+    {
+      path: '/teacher/dashboard',
+      component: () => import('@/views/teacher/Dashboard.vue'),
+      meta: { auth: true, role: 'teacher' },
+    },
     { path: '/:pathMatch(.*)*', component: () => import('@/views/NotFound.vue') },
   ],
   scrollBehavior() {

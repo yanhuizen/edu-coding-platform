@@ -7,6 +7,7 @@ export interface AuthPayload {
   sub: string;
   username: string;
   role: 'student' | 'teacher';
+  displayName: string;
 }
 
 declare global {
@@ -24,6 +25,7 @@ export function signToken(user: IUser): string {
     sub: user._id.toString(),
     username: user.username,
     role: user.role,
+    displayName: user.displayName,
   };
   return jwt.sign(payload, env.jwtSecret, { expiresIn: env.jwtExpiresIn } as jwt.SignOptions);
 }

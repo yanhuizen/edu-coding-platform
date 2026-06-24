@@ -7,10 +7,11 @@ interface AuthedSocket extends WebSocket {
   userId?: string;
   role?: 'student' | 'teacher';
   username?: string;
+  displayName?: string;
   roomId?: string;
 }
 
-// 房间: 学生 username 或 assignmentId
+// 房间: 'global' = 全局, 'course:' + courseId = 课程, 'assignment:' + assignmentId = 作业
 const rooms = new Map<string, Set<AuthedSocket>>();
 
 function joinRoom(socket: AuthedSocket, roomId: string) {
@@ -36,6 +37,20 @@ function broadcast(roomId: string, message: any, exclude?: AuthedSocket) {
   for (const client of set) {
     if (client !== exclude && client.readyState === WebSocket.OPEN) {
       client.send(data);
+    }
+  }
+}
+
+// 广播给所有房间（教师大屏用）
+function broadcastToTeachers(message: any, exclude?: AuthedSocket) {
+  for (const [roomId, set] of rooms.entries()) {
+    // 跳过 global 房间，只广播有意义的事件
+    if (roomId === 'global') continue;
+    for (const client of set) {
+      if (client === exclude) continue;
+      if (client.role === 'teacher' && client.readyState === WebSocket.OPEN) {
+        client.send(JSON.stringify(message));
+      }
     }
   }
 }
@@ -66,9 +81,10 @@ export function attachLogsWS(server: any, path = '/ws/logs') {
       ws.userId = payload.sub;
       ws.role = payload.role;
       ws.username = payload.username;
+      ws.displayName = payload.displayName;
       joinRoom(ws, room);
 
-      ws.send(JSON.stringify({ type: 'hello', userId: payload.sub, role: payload.role, room }));
+      ws.send(JSON.stringify({ type: 'hello', userId: payload.sub, role: payload.role, room, displayName: payload.displayName }));
 
       ws.on('message', (raw) => {
         try {
@@ -77,6 +93,7 @@ export function attachLogsWS(server: any, path = '/ws/logs') {
             broadcast(ws.roomId ?? 'global', {
               type: 'log',
               from: ws.username,
+              displayName: ws.displayName,
               role: ws.role,
               data: msg.data,
               ts: Date.now(),
@@ -85,6 +102,27 @@ export function attachLogsWS(server: any, path = '/ws/logs') {
             leaveRoom(ws);
             joinRoom(ws, msg.room);
             ws.send(JSON.stringify({ type: 'room-switched', room: msg.room }));
+          }
+          // 学生运行代码事件：run-start, run-end, error
+          else if (['run-start', 'run-end', 'error'].includes(msg.type) && ws.role === 'student') {
+            const eventData = {
+              type: msg.type,
+              studentId: ws.userId,
+              studentName: ws.displayName || ws.username,
+              username: ws.username,
+              assignmentId: msg.assignmentId,
+              assignmentTitle: msg.assignmentTitle,
+              courseId: msg.courseId,
+              courseTitle: msg.courseTitle,
+              code: msg.code,
+              output: msg.output,
+              error: msg.error,
+              ts: Date.now(),
+            };
+            // 广播给所有教师（大屏）
+            broadcastToTeachers(eventData, ws);
+            // 也广播给 global 房间的教师
+            broadcast('global', eventData, ws);
           }
         } catch {
           // ignore

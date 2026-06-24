@@ -2,6 +2,7 @@
 import { onMounted } from 'vue';
 import { useAuthStore } from '@/stores/auth';
 import AppHeader from '@/components/AppHeader.vue';
+import AIAssistant from '@/components/AIAssistant.vue';
 
 const auth = useAuthStore();
 
@@ -18,6 +19,7 @@ onMounted(() => {
     <main class="app-main">
       <router-view />
     </main>
+    <AIAssistant />
   </div>
 </template>
 

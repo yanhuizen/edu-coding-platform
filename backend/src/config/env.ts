@@ -21,4 +21,6 @@ export const env = {
     .map((s) => s.trim())
     .filter(Boolean),
   corsOrigin: (process.env.CORS_ORIGIN ?? 'http://localhost:5173').split(',').map((s) => s.trim()),
+  // Kimi API Key（可选，用于 AI 助教功能）
+  kimiApiKey: process.env.KIMI_API_KEY || '',
 };

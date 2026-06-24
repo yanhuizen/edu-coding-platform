@@ -7,6 +7,7 @@ import assignmentsRouter from './routes/assignments';
 import submissionsRouter from './routes/submissions';
 import healthRouter from './routes/health';
 import proxyRouter from './routes/proxy';
+import aiRouter from './routes/ai';
 import { notFound, errorHandler } from './middleware/errorHandler';
 
 export function createApp() {
@@ -20,6 +21,7 @@ export function createApp() {
   app.use('/api/assignments', assignmentsRouter);
   app.use('/api/submissions', submissionsRouter);
   app.use('/api/proxy/pyodide', proxyRouter);
+  app.use('/api/ai', aiRouter);
 
   app.use(notFound);
   app.use(errorHandler);

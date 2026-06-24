@@ -22,7 +22,8 @@ function logout() {
 
       <nav v-if="auth.isLoggedIn" class="nav">
         <router-link v-if="auth.isStudent" to="/courses" :class="{ active: route.path.startsWith('/courses') && !route.path.startsWith('/teacher') }">📚 课程</router-link>
-        <router-link v-if="auth.isTeacher" to="/teacher/courses" :class="{ active: route.path.startsWith('/teacher') }">👨‍🏫 教师后台</router-link>
+        <router-link v-if="auth.isTeacher" to="/teacher/dashboard" :class="{ active: route.path === '/teacher/dashboard' }">📊 大屏</router-link>
+        <router-link v-if="auth.isTeacher" to="/teacher/courses" :class="{ active: route.path.startsWith('/teacher/courses') }">👨‍🏫 后台</router-link>
         <router-link to="/profile" :class="{ active: route.path === '/profile' }">👤 我的</router-link>
       </nav>
 
