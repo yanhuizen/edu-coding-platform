@@ -8,9 +8,22 @@ export const http: AxiosInstance = axios.create({
   timeout: 15000,
 });
 
+let authStore: ReturnType<typeof useAuthStore> | null = null;
+
+function getAuthStore() {
+  if (!authStore) {
+    try {
+      authStore = useAuthStore();
+    } catch {
+      return null;
+    }
+  }
+  return authStore;
+}
+
 http.interceptors.request.use((config) => {
-  const auth = useAuthStore();
-  if (auth.token) {
+  const auth = getAuthStore();
+  if (auth?.token) {
     config.headers.Authorization = `Bearer ${auth.token}`;
   }
   return config;
@@ -20,9 +33,8 @@ http.interceptors.response.use(
   (resp) => resp,
   (err: AxiosError<any>) => {
     if (err.response?.status === 401) {
-      const auth = useAuthStore();
-      // 避免在登录页死循环
-      if (!location.pathname.startsWith('/login') && !location.pathname.startsWith('/register')) {
+      const auth = getAuthStore();
+      if (auth && !location.pathname.startsWith('/login') && !location.pathname.startsWith('/register')) {
         auth.logout();
         location.href = '/login?expired=1';
       }

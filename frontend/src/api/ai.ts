@@ -1,7 +1,7 @@
 /**
  * AI 助教 API
  */
-import { api } from './index';
+import { http } from './index';
 
 export interface AIMessage {
   role: 'system' | 'user' | 'assistant';
@@ -28,6 +28,6 @@ export const aiApi = {
    * @param messages 消息历史
    */
   chat(messages: AIMessage[]): Promise<AIResponse> {
-    return api.post('/ai/chat', { messages });
+    return http.post('/ai/chat', { messages });
   },
 };

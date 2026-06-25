@@ -6,9 +6,19 @@ import type { User } from '@/types/models';
 const TOKEN_KEY = 'edu.auth.token';
 const USER_KEY = 'edu.auth.user';
 
+function safeParseUser(raw: string | null): User | null {
+  if (!raw) return null;
+  try {
+    const obj = JSON.parse(raw);
+    return obj && obj._id ? obj : null;
+  } catch {
+    return null;
+  }
+}
+
 export const useAuthStore = defineStore('auth', () => {
   const token = ref<string | null>(localStorage.getItem(TOKEN_KEY));
-  const user = ref<User | null>(JSON.parse(localStorage.getItem(USER_KEY) || 'null'));
+  const user = ref<User | null>(safeParseUser(localStorage.getItem(USER_KEY)));
   const loading = ref(false);
 
   const isLoggedIn = computed(() => !!token.value && !!user.value);

@@ -4,7 +4,7 @@ import { useAuthStore } from '@/stores/auth';
 const router = createRouter({
   history: createWebHistory(),
   routes: [
-    { path: '/', redirect: () => (useAuthStore().isTeacher ? '/teacher/courses' : '/courses') },
+    { path: '/', redirect: '/courses' },
     { path: '/login', component: () => import('@/views/Login.vue'), meta: { guest: true } },
     { path: '/register', component: () => import('@/views/Register.vue'), meta: { guest: true } },
     { path: '/courses', component: () => import('@/views/Courses.vue'), meta: { auth: true } },
@@ -40,6 +40,11 @@ const router = createRouter({
 
 router.beforeEach((to) => {
   const auth = useAuthStore();
+
+  if (to.path === '/' || to.path === '') {
+    return auth.isTeacher ? '/teacher/courses' : '/courses';
+  }
+
   if (to.meta.auth && !auth.isLoggedIn) {
     return { path: '/login', query: { next: to.fullPath } };
   }
