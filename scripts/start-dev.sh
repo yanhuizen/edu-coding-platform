@@ -6,11 +6,11 @@ cd "$ROOT"
 
 echo "🐘 启动小象编程开发环境..."
 
-# 1. 检查 MongoDB
-echo "▶ 检查 MongoDB..."
+# 1. 检查 MongoDB 端口（不依赖 mongosh）
+echo "▶ 检查 MongoDB (localhost:27017)..."
 mongoReady=false
 for i in {1..6}; do
-  if mongosh --quiet --eval "db.runCommand({ ping: 1 }).ok" 2>/dev/null | grep -q "1"; then
+  if (echo > /dev/tcp/127.0.0.1/27017) 2>/dev/null; then
     mongoReady=true
     break
   fi
@@ -20,16 +20,16 @@ done
 
 if [ "$mongoReady" = false ]; then
   echo ""
-  echo "⚠️ MongoDB 未检测到!"
-  echo "   请先安装并启动 MongoDB:"
-  echo "   1. macOS: brew install mongodb-community && brew services start mongodb-community"
+  echo "⚠️ MongoDB 端口 27017 未响应!"
+  echo "   请确认:"
+  echo "   1. macOS: brew services start mongodb-community"
   echo "   2. Linux: sudo systemctl start mongod"
   echo "   3. 或修改 backend/.env 中的 MONGODB_URI"
   exit 1
 fi
 
 echo ""
-echo "✅ MongoDB 已就绪 (localhost:27017)"
+echo "✅ MongoDB 端口 27017 已就绪"
 
 # 2. 后端
 if [ ! -d backend/node_modules ]; then
