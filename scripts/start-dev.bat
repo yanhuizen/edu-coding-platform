@@ -7,10 +7,9 @@ rem =========================================
 rem  Resolve project root path
 rem =========================================
 set "SCRIPT_DIR=%~dp0"
-set "ROOT=%SCRIPT_DIR%.."
-pushd "%ROOT%"
+cd /d "%SCRIPT_DIR%.."
 set "ROOT=%CD%"
-popd
+cd /d "%SCRIPT_DIR%"
 
 echo.
 echo ========================================
@@ -37,8 +36,7 @@ if errorlevel 1 (
   pause
   exit /b 1
 )
-for /f "delims=" %%v in ('node --version') do set "NODE_VER=%%v"
-echo        Node.js %NODE_VER%  OK
+echo        Node.js found  OK
 echo.
 
 rem =========================================
@@ -55,15 +53,14 @@ if errorlevel 1 (
   pause
   exit /b 1
 )
-for /f "delims=" %%v in ('npm --version') do set "NPM_VER=%%v"
-echo        npm %NPM_VER%  OK
+echo        npm found  OK
 echo.
 
 rem =========================================
 rem  Step 1: Check MongoDB
 rem =========================================
 echo [1/3] Checking MongoDB...
-call :check_port 27017
+netstat -an | findstr ":27017 " | findstr LISTENING >nul 2>&1
 if errorlevel 1 (
   echo.
   echo [ERROR] Cannot connect to MongoDB (localhost:27017)
@@ -86,10 +83,10 @@ echo [2/3] Starting backend...
 
 if not exist "%ROOT%\backend\node_modules" (
   echo        Installing backend dependencies...
-  pushd "%ROOT%\backend"
+  cd /d "%ROOT%\backend"
   call npm install
   if errorlevel 1 (
-    popd
+    cd /d "%SCRIPT_DIR%"
     echo.
     echo [ERROR] Failed to install backend dependencies!
     echo.
@@ -100,7 +97,7 @@ if not exist "%ROOT%\backend\node_modules" (
     pause
     exit /b 1
   )
-  popd
+  cd /d "%SCRIPT_DIR%"
 )
 
 start "XiaoXiang - Backend" /D "%ROOT%\backend" cmd /k "npm run dev"
@@ -121,10 +118,10 @@ echo [3/3] Starting frontend...
 
 if not exist "%ROOT%\frontend\node_modules" (
   echo        Installing frontend dependencies...
-  pushd "%ROOT%\frontend"
+  cd /d "%ROOT%\frontend"
   call npm install
   if errorlevel 1 (
-    popd
+    cd /d "%SCRIPT_DIR%"
     echo.
     echo [ERROR] Failed to install frontend dependencies!
     echo.
@@ -135,7 +132,7 @@ if not exist "%ROOT%\frontend\node_modules" (
     pause
     exit /b 1
   )
-  popd
+  cd /d "%SCRIPT_DIR%"
 )
 
 start "XiaoXiang - Frontend" /D "%ROOT%\frontend" cmd /k "npm run dev"
@@ -152,7 +149,7 @@ echo.
 rem =========================================
 rem  Startup complete
 rem =========================================
-rem Wait for services to start
+rem Wait for services to start (3 seconds)
 ping 127.0.0.1 -n 4 >nul
 
 echo ========================================
@@ -172,27 +169,3 @@ echo.
 rem Wait 3 seconds then exit
 ping 127.0.0.1 -n 4 >nul
 exit /b 0
-
-rem =========================================
-rem  Subroutine: check if a port is open
-rem =========================================
-:check_port
-setlocal
-set "PORT=%~1"
-
-rem Method 1: netstat
-netstat -an | findstr ":%PORT% " | findstr LISTENING >nul 2>&1
-if not errorlevel 1 (
-  endlocal
-  exit /b 0
-)
-
-rem Method 2: PowerShell TcpClient
-powershell -NoProfile -Command "$t = New-Object System.Net.Sockets.TcpClient; try { $t.Connect('localhost', %PORT%); $t.Close(); exit 0 } catch { exit 1 }" >nul 2>&1
-if not errorlevel 1 (
-  endlocal
-  exit /b 0
-)
-
-endlocal
-exit /b 1
