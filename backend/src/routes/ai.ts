@@ -7,7 +7,7 @@ import { z } from 'zod';
 import https from 'https';
 import { env } from '../config/env';
 import { authRequired } from '../middleware/auth';
-import { HttpError } from '../middleware/errorHandler';
+import { HttpError, asyncHandler } from '../middleware/errorHandler';
 
 const router = Router();
 
@@ -44,8 +44,7 @@ interface KimiMessage {
   content: string;
 }
 
-router.post('/chat', authRequired, async (req: Request, res: Response) => {
-  // 检查 API Key 是否配置
+router.post('/chat', authRequired, asyncHandler(async (req: Request, res: Response) => {
   if (!env.kimiApiKey) {
     throw new HttpError(503, 'ai_unavailable', 'AI 助教暂不可用，请联系管理员配置 API Key');
   }
@@ -57,7 +56,6 @@ router.post('/chat', authRequired, async (req: Request, res: Response) => {
 
   const { messages } = parsed.data;
 
-  // 构建完整的消息列表（加上系统提示）
   const fullMessages: KimiMessage[] = [
     { role: 'system', content: SYSTEM_PROMPT },
     ...messages,
@@ -70,7 +68,7 @@ router.post('/chat', authRequired, async (req: Request, res: Response) => {
     console.error('[ai] Kimi API error:', e.message);
     throw new HttpError(502, 'ai_error', 'AI 服务暂时不可用，请稍后再试');
   }
-});
+}));
 
 interface KimiResponse {
   id: string;

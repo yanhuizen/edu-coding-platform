@@ -1,4 +1,4 @@
-import { Request, Response, NextFunction } from 'express';
+import { Request, Response, NextFunction, RequestHandler } from 'express';
 
 export class HttpError extends Error {
   constructor(public status: number, public code: string, message: string) {
@@ -22,4 +22,10 @@ export function errorHandler(err: any, _req: Request, res: Response, _next: Next
   }
   console.error('[error]', err);
   return res.status(500).json({ error: 'internal_error', message: '服务器开了小差,请稍后再试' });
+}
+
+export function asyncHandler(fn: RequestHandler): RequestHandler {
+  return (req, res, next) => {
+    Promise.resolve(fn(req, res, next)).catch(next);
+  };
 }

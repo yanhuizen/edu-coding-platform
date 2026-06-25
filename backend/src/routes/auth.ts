@@ -4,7 +4,7 @@ import { User } from '../models/User';
 import { hashPassword, verifyPassword } from '../utils/password';
 import { isValidInviteCode } from '../utils/inviteCode';
 import { signToken, authRequired } from '../middleware/auth';
-import { HttpError } from '../middleware/errorHandler';
+import { HttpError, asyncHandler } from '../middleware/errorHandler';
 
 const router = Router();
 
@@ -33,7 +33,7 @@ function publicUser(u: any) {
   };
 }
 
-router.post('/register', async (req: Request, res: Response) => {
+router.post('/register', asyncHandler(async (req: Request, res: Response) => {
   const parsed = RegisterSchema.safeParse(req.body);
   if (!parsed.success) {
     throw new HttpError(400, 'validation_error', parsed.error.issues[0].message);
@@ -63,9 +63,9 @@ router.post('/register', async (req: Request, res: Response) => {
   });
   const token = signToken(user);
   res.status(201).json({ accessToken: token, tokenType: 'Bearer', user: publicUser(user) });
-});
+}));
 
-router.post('/login', async (req: Request, res: Response) => {
+router.post('/login', asyncHandler(async (req: Request, res: Response) => {
   const parsed = LoginSchema.safeParse(req.body);
   if (!parsed.success) {
     throw new HttpError(400, 'validation_error', '请输入用户名和密码');
@@ -81,7 +81,7 @@ router.post('/login', async (req: Request, res: Response) => {
   }
   const token = signToken(user);
   res.json({ accessToken: token, tokenType: 'Bearer', user: publicUser(user) });
-});
+}));
 
 router.get('/me', authRequired, (req: Request, res: Response) => {
   res.json({ user: publicUser(req.user) });

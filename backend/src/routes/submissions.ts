@@ -5,7 +5,7 @@ import { Submission } from '../models/Submission';
 import { Assignment } from '../models/Assignment';
 import { Course } from '../models/Course';
 import { authRequired, requireRole } from '../middleware/auth';
-import { HttpError } from '../middleware/errorHandler';
+import { HttpError, asyncHandler } from '../middleware/errorHandler';
 
 const router = Router();
 
@@ -24,8 +24,7 @@ const GradeSchema = z.object({
   comment: z.string().max(500).optional(),
 });
 
-// 学生提交
-router.post('/', authRequired, async (req: Request, res: Response) => {
+router.post('/', authRequired, asyncHandler(async (req: Request, res: Response) => {
   if (req.user!.role !== 'student') {
     throw new HttpError(403, 'forbidden', '只有学生可以提交作业');
   }
@@ -41,7 +40,6 @@ router.post('/', authRequired, async (req: Request, res: Response) => {
     throw new HttpError(404, 'not_found', '没有这个作业');
   }
 
-  // 自动判分:若作业有 expectedOutput,字符串精确比对(忽略首尾空白)
   let status: 'pending' | 'passed' | 'failed' = 'pending';
   if (a.expectedOutput !== undefined && a.expectedOutput !== null) {
     status = normalize(parsed.data.output) === normalize(a.expectedOutput) ? 'passed' : 'failed';
@@ -56,19 +54,17 @@ router.post('/', authRequired, async (req: Request, res: Response) => {
     submittedAt: new Date(),
   });
   res.status(201).json({ submission: sub });
-});
+}));
 
-// 学生查看自己的提交历史
-router.get('/mine', authRequired, async (req: Request, res: Response) => {
+router.get('/mine', authRequired, asyncHandler(async (req: Request, res: Response) => {
   const list = await Submission.find({ studentId: req.user!._id })
     .sort({ submittedAt: -1 })
     .limit(100)
     .populate('assignmentId', 'title courseId totalScore');
   res.json({ submissions: list });
-});
+}));
 
-// 教师查看某作业的所有提交
-router.get('/by-assignment/:assignmentId', authRequired, requireRole('teacher'), async (req: Request, res: Response) => {
+router.get('/by-assignment/:assignmentId', authRequired, requireRole('teacher'), asyncHandler(async (req: Request, res: Response) => {
   const { assignmentId } = req.params;
   if (!Types.ObjectId.isValid(assignmentId)) {
     throw new HttpError(400, 'validation_error', '作业 id 不对');
@@ -85,10 +81,9 @@ router.get('/by-assignment/:assignmentId', authRequired, requireRole('teacher'),
     .sort({ submittedAt: -1 })
     .populate('studentId', 'username displayName avatarEmoji');
   res.json({ submissions: list });
-});
+}));
 
-// 教师批改
-router.post('/:id/grade', authRequired, requireRole('teacher'), async (req: Request, res: Response) => {
+router.post('/:id/grade', authRequired, requireRole('teacher'), asyncHandler(async (req: Request, res: Response) => {
   const { id } = req.params;
   if (!Types.ObjectId.isValid(id)) {
     throw new HttpError(400, 'validation_error', '提交 id 不对');
@@ -115,6 +110,6 @@ router.post('/:id/grade', authRequired, requireRole('teacher'), async (req: Requ
   sub.gradedAt = new Date();
   await sub.save();
   res.json({ submission: sub });
-});
+}));
 
 export default router;

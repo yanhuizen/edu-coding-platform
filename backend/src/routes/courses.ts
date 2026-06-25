@@ -4,7 +4,7 @@ import { Types } from 'mongoose';
 import { Course } from '../models/Course';
 import { Assignment } from '../models/Assignment';
 import { authRequired, requireRole } from '../middleware/auth';
-import { HttpError } from '../middleware/errorHandler';
+import { HttpError, asyncHandler } from '../middleware/errorHandler';
 
 const router = Router();
 
@@ -30,8 +30,7 @@ const CourseUpdateSchema = z.object({
   published: z.boolean().optional(),
 });
 
-// 学生:列出已发布课程;教师:列出自己创建的课程
-router.get('/', authRequired, async (req: Request, res: Response) => {
+router.get('/', authRequired, asyncHandler(async (req: Request, res: Response) => {
   const user = req.user!;
   if (user.role === 'teacher') {
     const list = await Course.find({ createdBy: user._id }).sort({ order: 1, createdAt: -1 });
@@ -39,9 +38,9 @@ router.get('/', authRequired, async (req: Request, res: Response) => {
   }
   const list = await Course.find({ published: true }).sort({ order: 1, createdAt: -1 });
   return res.json({ courses: list });
-});
+}));
 
-router.get('/:id', authRequired, async (req: Request, res: Response) => {
+router.get('/:id', authRequired, asyncHandler(async (req: Request, res: Response) => {
   const { id } = req.params;
   if (!Types.ObjectId.isValid(id)) {
     throw new HttpError(400, 'validation_error', '课程 id 不对');
@@ -55,9 +54,9 @@ router.get('/:id', authRequired, async (req: Request, res: Response) => {
     throw new HttpError(403, 'forbidden', '这门课还没发布');
   }
   res.json({ course });
-});
+}));
 
-router.post('/', authRequired, requireRole('teacher'), async (req: Request, res: Response) => {
+router.post('/', authRequired, requireRole('teacher'), asyncHandler(async (req: Request, res: Response) => {
   const parsed = CourseCreateSchema.safeParse(req.body);
   if (!parsed.success) {
     throw new HttpError(400, 'validation_error', parsed.error.issues[0].message);
@@ -68,9 +67,9 @@ router.post('/', authRequired, requireRole('teacher'), async (req: Request, res:
     published: false,
   });
   res.status(201).json({ course });
-});
+}));
 
-router.put('/:id', authRequired, requireRole('teacher'), async (req: Request, res: Response) => {
+router.put('/:id', authRequired, requireRole('teacher'), asyncHandler(async (req: Request, res: Response) => {
   const { id } = req.params;
   if (!Types.ObjectId.isValid(id)) {
     throw new HttpError(400, 'validation_error', '课程 id 不对');
@@ -86,9 +85,9 @@ router.put('/:id', authRequired, requireRole('teacher'), async (req: Request, re
   Object.assign(course, parsed.data);
   await course.save();
   res.json({ course });
-});
+}));
 
-router.post('/:id/lessons', authRequired, requireRole('teacher'), async (req: Request, res: Response) => {
+router.post('/:id/lessons', authRequired, requireRole('teacher'), asyncHandler(async (req: Request, res: Response) => {
   const { id } = req.params;
   if (!Types.ObjectId.isValid(id)) {
     throw new HttpError(400, 'validation_error', '课程 id 不对');
@@ -105,9 +104,9 @@ router.post('/:id/lessons', authRequired, requireRole('teacher'), async (req: Re
   course.lessons.sort((a, b) => a.order - b.order);
   await course.save();
   res.status(201).json({ course });
-});
+}));
 
-router.put('/:id/lessons/:lessonId', authRequired, requireRole('teacher'), async (req: Request, res: Response) => {
+router.put('/:id/lessons/:lessonId', authRequired, requireRole('teacher'), asyncHandler(async (req: Request, res: Response) => {
   const { id, lessonId } = req.params;
   if (!Types.ObjectId.isValid(id) || !Types.ObjectId.isValid(lessonId)) {
     throw new HttpError(400, 'validation_error', 'id 不对');
@@ -128,9 +127,9 @@ router.put('/:id/lessons/:lessonId', authRequired, requireRole('teacher'), async
   course.lessons.sort((a, b) => a.order - b.order);
   await course.save();
   res.json({ course });
-});
+}));
 
-router.delete('/:id/lessons/:lessonId', authRequired, requireRole('teacher'), async (req: Request, res: Response) => {
+router.delete('/:id/lessons/:lessonId', authRequired, requireRole('teacher'), asyncHandler(async (req: Request, res: Response) => {
   const { id, lessonId } = req.params;
   if (!Types.ObjectId.isValid(id) || !Types.ObjectId.isValid(lessonId)) {
     throw new HttpError(400, 'validation_error', 'id 不对');
@@ -142,16 +141,15 @@ router.delete('/:id/lessons/:lessonId', authRequired, requireRole('teacher'), as
   course.lessons = course.lessons.filter((l: any) => l._id.toString() !== lessonId) as any;
   await course.save();
   res.json({ course });
-});
+}));
 
-// 学生/教师查看课程下的所有作业
-router.get('/:id/assignments', authRequired, async (req: Request, res: Response) => {
+router.get('/:id/assignments', authRequired, asyncHandler(async (req: Request, res: Response) => {
   const { id } = req.params;
   if (!Types.ObjectId.isValid(id)) {
     throw new HttpError(400, 'validation_error', '课程 id 不对');
   }
   const list = await Assignment.find({ courseId: id }).sort({ createdAt: 1 });
   res.json({ assignments: list });
-});
+}));
 
 export default router;

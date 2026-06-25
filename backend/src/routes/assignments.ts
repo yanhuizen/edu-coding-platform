@@ -4,7 +4,7 @@ import { Types } from 'mongoose';
 import { Assignment } from '../models/Assignment';
 import { Course } from '../models/Course';
 import { authRequired, requireRole } from '../middleware/auth';
-import { HttpError } from '../middleware/errorHandler';
+import { HttpError, asyncHandler } from '../middleware/errorHandler';
 
 const router = Router();
 
@@ -20,7 +20,7 @@ const AssignmentCreateSchema = z.object({
 
 const AssignmentUpdateSchema = AssignmentCreateSchema.partial().omit({ courseId: true });
 
-router.get('/:id', authRequired, async (req: Request, res: Response) => {
+router.get('/:id', authRequired, asyncHandler(async (req: Request, res: Response) => {
   const { id } = req.params;
   if (!Types.ObjectId.isValid(id)) {
     throw new HttpError(400, 'validation_error', '作业 id 不对');
@@ -30,9 +30,9 @@ router.get('/:id', authRequired, async (req: Request, res: Response) => {
     throw new HttpError(404, 'not_found', '没有这个作业');
   }
   res.json({ assignment: a });
-});
+}));
 
-router.post('/', authRequired, requireRole('teacher'), async (req: Request, res: Response) => {
+router.post('/', authRequired, requireRole('teacher'), asyncHandler(async (req: Request, res: Response) => {
   const parsed = AssignmentCreateSchema.safeParse(req.body);
   if (!parsed.success) {
     throw new HttpError(400, 'validation_error', parsed.error.issues[0].message);
@@ -46,9 +46,9 @@ router.post('/', authRequired, requireRole('teacher'), async (req: Request, res:
   }
   const a = await Assignment.create(parsed.data);
   res.status(201).json({ assignment: a });
-});
+}));
 
-router.put('/:id', authRequired, requireRole('teacher'), async (req: Request, res: Response) => {
+router.put('/:id', authRequired, requireRole('teacher'), asyncHandler(async (req: Request, res: Response) => {
   const { id } = req.params;
   if (!Types.ObjectId.isValid(id)) {
     throw new HttpError(400, 'validation_error', '作业 id 不对');
@@ -68,9 +68,9 @@ router.put('/:id', authRequired, requireRole('teacher'), async (req: Request, re
   Object.assign(a, parsed.data);
   await a.save();
   res.json({ assignment: a });
-});
+}));
 
-router.delete('/:id', authRequired, requireRole('teacher'), async (req: Request, res: Response) => {
+router.delete('/:id', authRequired, requireRole('teacher'), asyncHandler(async (req: Request, res: Response) => {
   const { id } = req.params;
   if (!Types.ObjectId.isValid(id)) {
     throw new HttpError(400, 'validation_error', '作业 id 不对');
@@ -85,6 +85,6 @@ router.delete('/:id', authRequired, requireRole('teacher'), async (req: Request,
   }
   await a.deleteOne();
   res.json({ ok: true });
-});
+}));
 
 export default router;
