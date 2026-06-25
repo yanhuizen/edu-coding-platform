@@ -94,9 +94,6 @@ start "XiaoXiang - Frontend" cmd /k "cd /d "%ROOT%\frontend" && npm run dev"
 echo        前端服务启动中...
 echo.
 
-rem 等待几秒让服务启动
-timeout /t 3 /nobreak >nul
-
 echo ========================================
 echo   启动完成！
 echo.
@@ -106,12 +103,12 @@ echo   MongoDB : localhost:27017
 echo.
 echo   教师邀请码: DEMO2026
 echo.
-echo   提示: 关闭此窗口不会停止服务，
-echo         请在各自窗口中按 Ctrl+C 停止
+echo   提示: 此窗口关闭不影响服务，
+echo         请在前后端窗口中按 Ctrl+C 停止
 echo ========================================
 echo.
-pause
-goto :eof
+timeout /t 2 /nobreak >nul
+exit /b 0
 
 rem =========================================
 rem  检查 MongoDB 端口是否开放

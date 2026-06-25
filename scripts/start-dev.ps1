@@ -97,8 +97,9 @@ Write-Host "  MongoDB : localhost:27017"
 Write-Host ""
 Write-Host "  教师邀请码: DEMO2026" -ForegroundColor Yellow
 Write-Host ""
-Write-Host "  💡 提示: 关闭此窗口不会停止服务，"
-Write-Host "         请在各自窗口中按 Ctrl+C 停止"
+Write-Host "  💡 提示: 此窗口关闭不影响服务，"
+Write-Host "         请在前后端窗口中按 Ctrl+C 停止"
 Write-Host "========================================" -ForegroundColor Green
 Write-Host ""
-Read-Host "按回车关闭此窗口（服务继续运行）"
+Start-Sleep -Seconds 2
+exit 0
